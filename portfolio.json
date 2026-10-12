@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "name": "signal-forge-ryan-vo",
+  "owner": "A220man",
+  "email": "ryandtvo@gmail.com",
+  "domain": "AI/ML developer tools",
+  "summary": "Work in progress: signal-forge-ryan-vo",
+  "workflows": [
+    "Search any global location via Nominatim and fly the camera to it on a photorealistic 3D globe",
+    "Save current globe camera position with a custom name and recall it instantly from the sidebar",
+    "View real-time camera coordinates, altitude, heading, and pitch in the heads-up display"
+  ],
+  "auth": "oidc-keycloak-saml-broker",
+  "llm_providers": [
+    "openai-compatible",
+    "anthropic",
+    "gemini",
+    "ollama"
+  ],
+  "status": "work-in-progress"
+}
