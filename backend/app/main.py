@@ -2,8 +2,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
-from app.api import health_router, geocode_router
+from app.api import health_router, geocode_router, camera_router
 from app.services.geocoding import close_geocoding_client
+from app.services.cameras import close_camera_service
 
 
 @asynccontextmanager
@@ -12,6 +13,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     await close_geocoding_client()
+    await close_camera_service()
 
 
 def create_app() -> FastAPI:
@@ -36,6 +38,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(geocode_router)
+    app.include_router(camera_router)
 
     return app
 

@@ -41,6 +41,7 @@ graph TB
         Globe[globe.gl + three.js]
         Search[Search Panel]
         Sidebar[Saved Locations]
+        CameraPanel[Camera Feeds Panel]
         HUD[Heads-Up Display]
     end
 
@@ -48,18 +49,28 @@ graph TB
         API[FastAPI]
         Health[/health]
         Geocode[/api/geocode]
+        Cameras[/api/cameras]
+        CameraProxy[/api/cameras/{id}/proxy]
         Nominatim[Nominatim Client]
+        CameraService[Camera Service]
     end
 
     UI --> Globe
     UI --> Search
     UI --> Sidebar
+    UI --> CameraPanel
     UI --> HUD
     Search --> Geocode
     Geocode --> Nominatim
     Nominatim --> OSM[(OpenStreetMap Nominatim)]
+    CameraPanel --> Cameras
+    Cameras --> CameraService
+    CameraProxy --> CameraService
+    CameraService --> MockData[(Mock Camera Data)]
     API --> Health
     API --> Geocode
+    API --> Cameras
+    API --> CameraProxy
 ```
 
 ## Features
@@ -67,6 +78,7 @@ graph TB
 - **Photorealistic 3D Globe** — Night/earth textures, atmosphere, graticules
 - **Location Search** — Debounced Nominatim geocoding, keyboard navigation, click-to-fly
 - **Saved Locations** — Name, persist, rename, delete, recall camera positions
+- **Live Traffic Cameras** — Camera markers on globe with status colors, click for live preview and fly-to
 - **Camera HUD** — Real-time position, altitude, heading, pitch
 - **Responsive UI** — Collapsible sidebar, dark/light theme, accessibility support
 - **Docker Ready** — Multi-stage builds, non-root users, health checks
@@ -152,6 +164,36 @@ Search for locations via Nominatim.
 }
 ```
 
+### GET /api/cameras
+Get traffic camera feeds, optionally filtered by bounding box.
+
+**Parameters:**
+- `min_lat`, `min_lng`, `max_lat`, `max_lng` (optional): Bounding box filter (all four required)
+
+**Response:**
+```json
+{
+  "cameras": [
+    {
+      "id": "austin-congress-1",
+      "name": "Congress Ave Bridge",
+      "lat": 30.2608,
+      "lng": -97.7431,
+      "image_url": "https://example.com/camera.jpg",
+      "status": "active",
+      "last_checked": "2024-01-01T00:00:00Z",
+      "source": "demo",
+      "attribution": "Demo camera - Unsplash"
+    }
+  ],
+  "timestamp": "2024-01-01T00:00:00Z",
+  "cached": false
+}
+```
+
+### GET /api/cameras/{camera_id}/proxy
+Proxy a camera image to avoid CORS issues. Returns the image with CORS headers.
+
 ## Configuration
 
 Copy `.env.example` to `.env` and adjust:
@@ -188,6 +230,7 @@ npm test
 - **No HTTPS in development** — Use reverse proxy (Traefik, nginx) with TLS in production
 - **localStorage only** — Saved locations stored locally, not synced or encrypted
 - **No input sanitization on globe** — Coordinate values passed directly to WebGL
+- **Demo camera data** — Camera feeds use placeholder images; production requires real camera API integration
 
 ## Provider Configuration
 

@@ -21,6 +21,26 @@ export interface GeocodeResponse {
   cached: boolean
 }
 
+export type CameraStatus = 'active' | 'inactive' | 'unknown'
+
+export interface CameraFeed {
+  id: string
+  name: string
+  lat: number
+  lng: number
+  image_url: string
+  status: CameraStatus
+  last_checked?: string
+  source: string
+  attribution?: string
+}
+
+export interface CameraFeedResponse {
+  cameras: CameraFeed[]
+  timestamp: string
+  cached: boolean
+}
+
 export interface CameraState {
   lat: number
   lng: number

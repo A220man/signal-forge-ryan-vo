@@ -3,8 +3,10 @@ import { GlobeComponent, type GlobeRef } from '@/components/Globe'
 import { SearchPanel } from '@/components/SearchPanel'
 import { Sidebar } from '@/components/Sidebar'
 import { HUD } from '@/components/HUD'
+import { CameraPanel } from '@/components/CameraPanel'
 import { ToastContainer, useToasts } from '@/components/Toast'
-import type { GeocodeResult, CameraState, SavedLocation } from '@/types'
+import { api } from '@/services/api'
+import type { GeocodeResult, CameraState, SavedLocation, CameraFeed, CameraFeedResponse } from '@/types'
 import '@/styles/globals.css'
 
 const STORAGE_KEY = 'signal-forge-saved-locations'
@@ -38,7 +40,11 @@ export function App() {
   const [savedLocations, setSavedLocations] = useState<SavedLocation[]>(() => loadSavedLocations())
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null)
   const [currentCamera, setCurrentCamera] = useState<CameraState | null>(null)
-  const { toasts, dismissToast, success, error: showError } = useToasts()
+  const [cameras, setCameras] = useState<CameraFeed[]>([])
+  const [selectedCamera, setSelectedCamera] = useState<CameraFeed | null>(null)
+  const [camerasLoading, setCamerasLoading] = useState(false)
+  const [camerasError, setCamerasError] = useState<string | null>(null)
+  const { toasts, dismissToast, success, error: showError, info } = useToasts()
 
   useEffect(() => {
     saveLocations(savedLocations)
@@ -57,6 +63,58 @@ export function App() {
     const interval = setInterval(updateCamera, 500)
     return () => clearInterval(interval)
   }, [updateCamera])
+
+  const fetchCameras = useCallback(async () => {
+    setCamerasLoading(true)
+    setCamerasError(null)
+    try {
+      // Get current camera bounds to filter cameras
+      let bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number } | undefined
+      if (currentCamera) {
+        // Approximate viewport bounds based on altitude
+        const altitude = currentCamera.altitude
+        const latDelta = Math.max(0.5, altitude * 2)
+        const lngDelta = Math.max(0.5, altitude * 2)
+        bbox = {
+          minLat: currentCamera.lat - latDelta,
+          maxLat: currentCamera.lat + latDelta,
+          minLng: currentCamera.lng - lngDelta,
+          maxLng: currentCamera.lng + lngDelta,
+        }
+      }
+
+      const response: CameraFeedResponse = await api.getCameras(bbox)
+      setCameras(response.cameras)
+
+      // Add camera markers to globe
+      if (globeRef.current) {
+        globeRef.current.clearCameraMarkers()
+        response.cameras.forEach((cam) => {
+          globeRef.current?.addCameraMarker(cam)
+        })
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to load cameras'
+      setCamerasError(msg)
+      showError(msg)
+    } finally {
+      setCamerasLoading(false)
+    }
+  }, [currentCamera, showError])
+
+  // Initial camera fetch
+  useEffect(() => {
+    fetchCameras()
+  }, [fetchCameras])
+
+  // Refetch cameras when camera position changes significantly
+  useEffect(() => {
+    if (!currentCamera) return
+    const timer = setTimeout(() => {
+      fetchCameras()
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [currentCamera?.lat, currentCamera?.lng, currentCamera?.altitude, fetchCameras])
 
   const handleSelectLocation = useCallback((result: GeocodeResult) => {
     const lat = parseFloat(result.lat)
@@ -108,6 +166,20 @@ export function App() {
     }
   }, [savedLocations, activeLocationId, showError])
 
+  const handleSelectCamera = useCallback((camera: CameraFeed | null) => {
+    setSelectedCamera(camera)
+    if (globeRef.current) {
+      globeRef.current.setSelectedCamera(camera)
+    }
+  }, [])
+
+  const handleFlyToCamera = useCallback((camera: CameraFeed) => {
+    if (globeRef.current) {
+      globeRef.current.flyTo(camera.lat, camera.lng, 1.5, 1500)
+    }
+    info(`Flying to ${camera.name}`)
+  }, [info])
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
       <GlobeComponent ref={globeRef} />
@@ -119,6 +191,13 @@ export function App() {
         onSaveLocation={handleSaveLocation}
         onRenameLocation={handleRenameLocation}
         onDeleteLocation={handleDeleteLocation}
+        currentCamera={currentCamera}
+      />
+      <CameraPanel
+        cameras={cameras}
+        selectedCamera={selectedCamera}
+        onSelectCamera={handleSelectCamera}
+        onFlyToCamera={handleFlyToCamera}
         currentCamera={currentCamera}
       />
       <HUD camera={currentCamera} />
