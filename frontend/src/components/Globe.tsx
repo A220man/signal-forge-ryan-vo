@@ -1,6 +1,6 @@
-import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
+import { useRef, useEffect, useCallback, useState, useImperativeHandle, forwardRef } from 'react'
 import Globe from 'globe.gl'
-import type { CameraState, SavedLocation } from '@/types'
+import type { CameraFeed, CameraState, SavedLocation } from '@/types'
 
 type GlobeInstance = InstanceType<typeof Globe>
 
@@ -16,12 +16,16 @@ export interface GlobeRef {
   goToLocation: (location: SavedLocation) => void
   addMarker: (lat: number, lng: number, color?: string, size?: number) => void
   clearMarkers: () => void
+  addCameraMarker: (camera: CameraFeed) => void
+  clearCameraMarkers: () => void
+  setSelectedCamera: (camera: CameraFeed | null) => void
 }
 
 export const GlobeComponent = forwardRef<GlobeRef, { className?: string }>(({ className }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const globeRef = useRef<ExtendedGlobeInstance | null>(null)
   const animationRef = useRef<number | null>(null)
+  const cameraMarkersRef = useRef<Map<string, GlobeInstance>>(new Map())
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -57,12 +61,12 @@ export const GlobeComponent = forwardRef<GlobeRef, { className?: string }>(({ cl
     }
   }, [])
 
-  const flyTo = (lat: number, lng: number, altitude = 2.5, duration = 2000) => {
+  const flyTo = useCallback((lat: number, lng: number, altitude = 2.5, duration = 2000) => {
     if (!globeRef.current) return
     globeRef.current.pointOfView({ lat, lng, altitude }, duration)
-  }
+  }, [])
 
-  const getCameraState = (): CameraState | null => {
+  const getCameraState = useCallback((): CameraState | null => {
     if (!globeRef.current) return null
     const pov = globeRef.current.pointOfView()
     return {
@@ -72,25 +76,69 @@ export const GlobeComponent = forwardRef<GlobeRef, { className?: string }>(({ cl
       heading: 0,
       pitch: 0,
     }
-  }
+  }, [])
 
-  const goToLocation = (location: SavedLocation) => {
+  const goToLocation = useCallback((location: SavedLocation) => {
     flyTo(location.camera.lat, location.camera.lng, location.camera.altitude)
-  }
+  }, [flyTo])
 
-  const addMarker = (lat: number, lng: number, color = '#00d4aa', size = 0.5) => {
+  const addMarker = useCallback((lat: number, lng: number, color = '#00d4aa', size = 0.5) => {
     if (!globeRef.current) return
     globeRef.current
       .pointsData([{ lat, lng, color, size }])
       .pointAltitude(0.01)
       .pointColor('color')
       .pointRadius('size')
-  }
+  }, [])
 
-  const clearMarkers = () => {
+  const clearMarkers = useCallback(() => {
     if (!globeRef.current) return
     globeRef.current.pointsData([])
-  }
+  }, [])
+
+  const addCameraMarker = useCallback((camera: CameraFeed) => {
+    if (!globeRef.current) return
+
+    const color = camera.status === 'active' ? '#00d4aa' : camera.status === 'inactive' ? '#ff4444' : '#ffaa00'
+    const markerGlobe = new Globe(document.createElement('div'))
+
+    markerGlobe
+      .pointsData([{ lat: camera.lat, lng: camera.lng, color, size: 0.8, camera }])
+      .pointAltitude(0.01)
+      .pointColor('color')
+      .pointRadius('size')
+      // @ts-ignore - globe.gl types are incomplete for custom data accessors
+      .pointLabel((d: { camera: CameraFeed }) => d.camera.name)
+      .labelColor(() => '#fff')
+      .labelSize(0.3)
+      .labelAltitude(0.02)
+      // @ts-ignore - globe.gl types are incomplete for custom data accessors
+      .labelRotation((d: { camera: CameraFeed }) => d.camera.lat * 0.017)
+
+    cameraMarkersRef.current.set(camera.id, markerGlobe)
+  }, [])
+
+  const clearCameraMarkers = useCallback(() => {
+    if (!globeRef.current) return
+    cameraMarkersRef.current.clear()
+    globeRef.current.pointsData([])
+  }, [])
+
+  const setSelectedCamera = useCallback((camera: CameraFeed | null) => {
+    if (!globeRef.current) return
+
+    // Re-render all markers with updated selection state
+    const markers = Array.from(cameraMarkersRef.current.values())
+    if (markers.length > 0) {
+      const allData = markers.flatMap(m => m.pointsData() as Array<{ lat: number; lng: number; color: string; size: number; camera: CameraFeed }>)
+      const updatedData = allData.map(item => ({
+        ...item,
+        color: item.camera.id === camera?.id ? '#ffff00' : (item.camera.status === 'active' ? '#00d4aa' : item.camera.status === 'inactive' ? '#ff4444' : '#ffaa00'),
+        size: item.camera.id === camera?.id ? 1.2 : 0.8,
+      }))
+      globeRef.current.pointsData(updatedData)
+    }
+  }, [])
 
   useImperativeHandle(ref, () => ({
     flyTo,
@@ -98,6 +146,9 @@ export const GlobeComponent = forwardRef<GlobeRef, { className?: string }>(({ cl
     goToLocation,
     addMarker,
     clearMarkers,
+    addCameraMarker,
+    clearCameraMarkers,
+    setSelectedCamera,
   }))
 
   return <div ref={containerRef} className={`globe-container ${className || ''}`} />

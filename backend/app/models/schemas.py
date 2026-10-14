@@ -1,6 +1,33 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
+from enum import Enum
+
+
+class CameraStatus(str, Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    UNKNOWN = "unknown"
+
+
+class CameraFeed(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    lat: float
+    lng: float
+    image_url: str
+    status: CameraStatus = CameraStatus.UNKNOWN
+    last_checked: Optional[datetime] = None
+    source: str
+    attribution: Optional[str] = None
+
+
+class CameraFeedResponse(BaseModel):
+    cameras: list[CameraFeed]
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    cached: bool = False
 
 
 class GeocodeResult(BaseModel):

@@ -4,7 +4,7 @@ Each round completes one feature or repair. Future items are planned, not implem
 
 ## Current round
 
-core-skeleton
+camera-feeds
 
 ## Roadmap
 
@@ -42,13 +42,17 @@ Tests: `frontend/src/components/Sidebar.test.tsx`
 
 ### camera-feeds — Live traffic camera feeds on globe
 
-Status: planned
+Status: done
 
 Acceptance:
 - Backend proxies camera feeds with CORS headers
 - Camera markers appear on globe at correct coordinates
 - Clicking marker shows live camera frame
 - Feed health polling filters dead cameras
+
+Implementation: `backend/app/models/schemas.py`, `backend/app/services/cameras.py`, `backend/app/api/cameras.py`, `backend/app/main.py`, `backend/app/api/__init__.py`, `backend/tests/test_cameras.py`, `frontend/src/types/index.ts`, `frontend/src/services/api.ts`, `frontend/src/components/Globe.tsx`, `frontend/src/components/CameraPanel.tsx`, `frontend/src/components/CameraPanel.module.css`, `frontend/src/App.tsx`
+
+Tests: `backend/tests/test_cameras.py`
 
 ### voice-interface — Voice interaction with LLM provider abstraction
 

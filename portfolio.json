@@ -8,6 +8,7 @@
   "workflows": [
     "Search any global location via Nominatim and fly the camera to it on a photorealistic 3D globe",
     "Save current globe camera position with a custom name and recall it instantly from the sidebar",
+    "View live traffic camera feeds on the globe with status indicators, click for preview and fly-to-camera",
     "View real-time camera coordinates, altitude, heading, and pitch in the heads-up display"
   ],
   "auth": "oidc-keycloak-saml-broker",

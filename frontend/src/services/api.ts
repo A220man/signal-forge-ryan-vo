@@ -1,4 +1,4 @@
-import type { GeocodeResponse, ApiError } from '../types'
+import type { GeocodeResponse, ApiError, CameraFeedResponse, CameraFeed } from '../types'
 
 const API_BASE = '/api'
 
@@ -31,6 +31,22 @@ class ApiClient {
 
   async health(): Promise<{ status: string; version: string; environment: string }> {
     return this.request('/health')
+  }
+
+  async getCameras(bbox?: { minLat: number; minLng: number; maxLat: number; maxLng: number }): Promise<CameraFeedResponse> {
+    const params = new URLSearchParams()
+    if (bbox) {
+      params.append('min_lat', bbox.minLat.toString())
+      params.append('min_lng', bbox.minLng.toString())
+      params.append('max_lat', bbox.maxLat.toString())
+      params.append('max_lng', bbox.maxLng.toString())
+    }
+    const query = params.toString()
+    return this.request<CameraFeedResponse>(`/cameras${query ? `?${query}` : ''}`)
+  }
+
+  getCameraImageUrl(cameraId: string): string {
+    return `${API_BASE}/cameras/${cameraId}/proxy`
   }
 }
 
