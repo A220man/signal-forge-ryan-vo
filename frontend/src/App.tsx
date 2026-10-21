@@ -4,9 +4,10 @@ import { SearchPanel } from '@/components/SearchPanel'
 import { Sidebar } from '@/components/Sidebar'
 import { HUD } from '@/components/HUD'
 import { CameraPanel } from '@/components/CameraPanel'
+import { VoicePanel } from '@/components/VoicePanel'
 import { ToastContainer, useToasts } from '@/components/Toast'
 import { api } from '@/services/api'
-import type { GeocodeResult, CameraState, SavedLocation, CameraFeed, CameraFeedResponse } from '@/types'
+import type { GeocodeResult, CameraState, SavedLocation, CameraFeed, CameraFeedResponse, VoiceCommandRequest } from '@/types'
 import '@/styles/globals.css'
 
 const STORAGE_KEY = 'signal-forge-saved-locations'
@@ -180,6 +181,68 @@ export function App() {
     info(`Flying to ${camera.name}`)
   }, [info])
 
+  const handleVoiceAction = useCallback((action: string, params: Record<string, unknown>) => {
+    switch (action) {
+      case 'fly_to': {
+        const location = params.location as string
+        if (location && globeRef.current) {
+          // Use the geocoding API to find the location first
+          api.geocode(location).then(response => {
+            if (response.results.length > 0) {
+              const result = response.results[0]
+              const lat = parseFloat(result.lat)
+              const lng = parseFloat(result.lon)
+              globeRef.current?.flyTo(lat, lng, 2.5, 2000)
+              globeRef.current?.clearMarkers()
+              globeRef.current?.addMarker(lat, lng)
+              info(`Flying to ${result.display_name}`)
+            }
+          }).catch(() => {
+            showError(`Could not find location: ${location}`)
+          })
+        }
+        break
+      }
+      case 'search': {
+        const query = params.query as string
+        if (query) {
+          // The search panel handles this, but we can trigger it programmatically
+          // For now, just geocode and fly
+          api.geocode(query).then(response => {
+            if (response.results.length > 0) {
+              const result = response.results[0]
+              const lat = parseFloat(result.lat)
+              const lng = parseFloat(result.lon)
+              globeRef.current?.flyTo(lat, lng, 2.5, 2000)
+              globeRef.current?.clearMarkers()
+              globeRef.current?.addMarker(lat, lng)
+              info(`Found: ${result.display_name}`)
+            } else {
+              showError(`No results for: ${query}`)
+            }
+          }).catch(() => {
+            showError(`Search failed for: ${query}`)
+          })
+        }
+        break
+      }
+      case 'save_location': {
+        if (currentCamera) {
+          const name = (params.name as string) || `Voice saved ${new Date().toLocaleTimeString()}`
+          handleSaveLocation(name, currentCamera)
+        } else {
+          showError('No current camera position to save')
+        }
+        break
+      }
+      case 'show_cameras': {
+        // Trigger camera fetch for current position
+        fetchCameras()
+        info('Loading nearby cameras')
+        break
+      }
+    }
+  }, [currentCamera, fetchCameras, handleSaveLocation, info, showError])
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
       <GlobeComponent ref={globeRef} />
@@ -200,6 +263,7 @@ export function App() {
         onFlyToCamera={handleFlyToCamera}
         currentCamera={currentCamera}
       />
+      <VoicePanel onAction={handleVoiceAction} />
       <HUD camera={currentCamera} />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>

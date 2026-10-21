@@ -62,6 +62,34 @@ class HealthResponse(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
+class VoiceProvider(str, Enum):
+    MOCK = "mock"
+    OPENAI = "openai"
+    GEMINI = "gemini"
+
+
+class VoiceCommandRequest(BaseModel):
+    text: str
+    provider: Optional[str] = None
+    model: Optional[str] = None
+
+
+class VoiceCommandResponse(BaseModel):
+    success: bool
+    text: str
+    action: Optional[str] = None
+    action_params: Optional[dict] = None
+    provider: str
+    error: Optional[str] = None
+
+
+class VoiceProviderStatus(BaseModel):
+    provider: str
+    available: bool
+    model: Optional[str] = None
+    error: Optional[str] = None
+
+
 class ErrorResponse(BaseModel):
     error: str
     detail: Optional[str] = None

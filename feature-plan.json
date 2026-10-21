@@ -1,1 +1,150 @@
-{"schema_version":1,"current_feature":"camera-feeds","features":[{"id":"core-skeleton","title":"FastAPI/React skeleton with 3D globe and location search","status":"done","acceptance":["FastAPI backend runs with health endpoint","React + TypeScript + Vite frontend builds and runs","3D globe renders using three.js/globe.gl","Location search via Nominatim geocoding works","Clicking search result flies camera to location on globe","Backend and frontend tests pass","Dockerfiles and compose.yaml present"],"implementation":["backend/app/main.py","backend/app/api/health.py","backend/app/api/geocode.py","backend/app/services/geocoding.py","backend/app/models/schemas.py","backend/app/core/config.py","backend/tests/test_health.py","backend/tests/test_geocode.py","frontend/src/App.tsx","frontend/src/components/Globe.tsx","frontend/src/components/SearchPanel.tsx","frontend/src/components/Sidebar.tsx","frontend/src/components/HUD.tsx","frontend/src/components/Toast.tsx","frontend/src/hooks/useGeocode.ts","frontend/src/hooks/useGlobe.ts","frontend/src/services/api.ts","frontend/src/types/index.ts","frontend/src/styles/globals.css","frontend/src/styles/variables.css"],"tests":["backend/tests/test_health.py","backend/tests/test_geocode.py","frontend/src/components/SearchPanel.test.tsx","frontend/src/components/Sidebar.test.tsx"]},{"id":"saved-locations","title":"Saved/favourite locations with localStorage persistence","status":"done","acceptance":["User can save current globe camera position with custom name","Saved locations appear in a sidebar/list","Clicking saved location restores camera position","Locations persist in localStorage across sessions","User can rename/delete saved locations"],"implementation":["frontend/src/components/Sidebar.tsx","frontend/src/App.tsx"],"tests":["frontend/src/components/Sidebar.test.tsx"]},{"id":"camera-feeds","title":"Live traffic camera feeds on globe","status":"done","acceptance":["Backend proxies camera feeds with CORS headers","Camera markers appear on globe at correct coordinates","Clicking marker shows live camera frame","Feed health polling filters dead cameras"],"implementation":["backend/app/models/schemas.py","backend/app/services/cameras.py","backend/app/api/cameras.py","backend/app/main.py","backend/app/api/__init__.py","backend/tests/test_cameras.py","frontend/src/types/index.ts","frontend/src/services/api.ts","frontend/src/components/Globe.tsx","frontend/src/components/CameraPanel.tsx","frontend/src/components/CameraPanel.module.css","frontend/src/App.tsx"],"tests":["backend/tests/test_cameras.py"]},{"id":"voice-interface","title":"Voice interaction with LLM provider abstraction","status":"planned","acceptance":["Provider interface supports OpenAI-compatible and Gemini","Voice commands can trigger globe actions (fly to, search)","Runtime provider picker in UI","Graceful errors when provider unavailable"],"implementation":[],"tests":[]},{"id":"auth-oidc","title":"OIDC authentication with Keycloak","status":"planned","acceptance":["Keycloak realm configuration included","Backend validates JWT tokens","Frontend PKCE flow with sessionStorage","Protected API endpoints require authentication","Demo mode for local development only"],"implementation":[],"tests":[]},{"id":"radio-layers","title":"Radio/RF map layers and web receiver tuning","status":"planned","acceptance":["Broadcast stations layer on globe","Web receiver (KiwiSDR/WebSDR) markers","Clicking receiver tunes audio in browser","Local SDR support (browser USB/WebAudio)"],"implementation":[],"tests":[]}]}
+{
+    "schema_version": 1,
+    "current_feature": "voice-interface",
+    "features": [
+        {
+            "id": "core-skeleton",
+            "title": "FastAPI/React skeleton with 3D globe and location search",
+            "status": "done",
+            "acceptance": [
+                "FastAPI backend runs with health endpoint",
+                "React + TypeScript + Vite frontend builds and runs",
+                "3D globe renders using three.js/globe.gl",
+                "Location search via Nominatim geocoding works",
+                "Clicking search result flies camera to location on globe",
+                "Backend and frontend tests pass",
+                "Dockerfiles and compose.yaml present"
+            ],
+            "implementation": [
+                "backend/app/main.py",
+                "backend/app/api/health.py",
+                "backend/app/api/geocode.py",
+                "backend/app/services/geocoding.py",
+                "backend/app/models/schemas.py",
+                "backend/app/core/config.py",
+                "backend/tests/test_health.py",
+                "backend/tests/test_geocode.py",
+                "frontend/src/App.tsx",
+                "frontend/src/components/Globe.tsx",
+                "frontend/src/components/SearchPanel.tsx",
+                "frontend/src/components/Sidebar.tsx",
+                "frontend/src/components/HUD.tsx",
+                "frontend/src/components/Toast.tsx",
+                "frontend/src/hooks/useGeocode.ts",
+                "frontend/src/hooks/useGlobe.ts",
+                "frontend/src/services/api.ts",
+                "frontend/src/types/index.ts",
+                "frontend/src/styles/globals.css",
+                "frontend/src/styles/variables.css"
+            ],
+            "tests": [
+                "backend/tests/test_health.py",
+                "backend/tests/test_geocode.py",
+                "frontend/src/components/SearchPanel.test.tsx",
+                "frontend/src/components/Sidebar.test.tsx"
+            ]
+        },
+        {
+            "id": "saved-locations",
+            "title": "Saved/favourite locations with localStorage persistence",
+            "status": "done",
+            "acceptance": [
+                "User can save current globe camera position with custom name",
+                "Saved locations appear in a sidebar/list",
+                "Clicking saved location restores camera position",
+                "Locations persist in localStorage across sessions",
+                "User can rename/delete saved locations"
+            ],
+            "implementation": [
+                "frontend/src/components/Sidebar.tsx",
+                "frontend/src/App.tsx"
+            ],
+            "tests": [
+                "frontend/src/components/Sidebar.test.tsx"
+            ]
+        },
+        {
+            "id": "camera-feeds",
+            "title": "Live traffic camera feeds on globe",
+            "status": "done",
+            "acceptance": [
+                "Backend proxies camera feeds with CORS headers",
+                "Camera markers appear on globe at correct coordinates",
+                "Clicking marker shows live camera frame",
+                "Feed health polling filters dead cameras"
+            ],
+            "implementation": [
+                "backend/app/models/schemas.py",
+                "backend/app/services/cameras.py",
+                "backend/app/api/cameras.py",
+                "backend/app/main.py",
+                "backend/app/api/__init__.py",
+                "backend/tests/test_cameras.py",
+                "frontend/src/types/index.ts",
+                "frontend/src/services/api.ts",
+                "frontend/src/components/Globe.tsx",
+                "frontend/src/components/CameraPanel.tsx",
+                "frontend/src/components/CameraPanel.module.css",
+                "frontend/src/App.tsx"
+            ],
+            "tests": [
+                "backend/tests/test_cameras.py"
+            ]
+        },
+        {
+            "id": "voice-interface",
+            "title": "Voice interaction with LLM provider abstraction",
+            "status": "done",
+            "acceptance": [
+                "Provider interface supports OpenAI-compatible and Gemini",
+                "Voice commands can trigger globe actions (fly to, search)",
+                "Runtime provider picker in UI",
+                "Graceful errors when provider unavailable"
+            ],
+            "implementation": [
+                "backend/app/core/config.py",
+                "backend/app/models/schemas.py",
+                "backend/app/services/voice.py",
+                "backend/app/api/voice.py",
+                "backend/app/main.py",
+                "backend/tests/test_voice.py",
+                "frontend/src/services/voice.ts",
+                "frontend/src/components/VoicePanel.tsx",
+                "frontend/src/components/VoicePanel.module.css",
+                "frontend/src/App.tsx",
+                "frontend/src/types/index.ts"
+            ],
+            "tests": [
+                "backend/tests/test_voice.py",
+                "frontend/src/components/VoicePanel.test.tsx"
+            ]
+        },
+        {
+            "id": "auth-oidc",
+            "title": "OIDC authentication with Keycloak",
+            "status": "planned",
+            "acceptance": [
+                "Keycloak realm configuration included",
+                "Backend validates JWT tokens",
+                "Frontend PKCE flow with sessionStorage",
+                "Protected API endpoints require authentication",
+                "Demo mode for local development only"
+            ],
+            "implementation": [],
+            "tests": []
+        },
+        {
+            "id": "radio-layers",
+            "title": "Radio/RF map layers and web receiver tuning",
+            "status": "planned",
+            "acceptance": [
+                "Broadcast stations layer on globe",
+                "Web receiver (KiwiSDR/WebSDR) markers",
+                "Clicking receiver tunes audio in browser",
+                "Local SDR support (browser USB/WebAudio)"
+            ],
+            "implementation": [],
+            "tests": []
+        }
+    ]
+}
