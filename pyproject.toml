@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "signal-forge"
-version = "1.0.0"
+version = "1.2.0"
 description = "Signal Forge - Live open source spatial intelligence on a photorealistic 3D globe"
 readme = "README.md"
 authors = [{name = "Ryan Vo", email = "ryandtvo@gmail.com"}]

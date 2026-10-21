@@ -1,0 +1,290 @@
+.voicePanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 300px;
+  max-height: 500px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  font-family: var(--font-sans);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--panel-header-bg);
+}
+
+.header h3 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.providerSelector {
+  position: relative;
+}
+
+.providerButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.providerButton:hover {
+  border-color: var(--accent-color);
+}
+
+.providerDropdown {
+  position: absolute;
+  top: calc(100% + var(--spacing-xs));
+  right: 0;
+  min-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  list-style: none;
+  margin: 0;
+  padding: var(--spacing-xs);
+  z-index: 100;
+}
+
+.providerOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  transition: background-color var(--transition-fast);
+}
+
+.providerOption:hover:not(.unavailable) {
+  background: var(--hover-bg);
+}
+
+.providerOption.selected {
+  background: var(--accent-bg);
+  color: var(--accent-color);
+  font-weight: 500;
+}
+
+.providerOption.unavailable {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.availableIcon {
+  color: var(--success-color);
+  flex-shrink: 0;
+}
+
+.unavailableIcon {
+  color: var(--warning-color);
+  flex-shrink: 0;
+}
+
+.errorText {
+  font-size: var(--font-size-xs);
+  color: var(--warning-color);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.userMessage {
+  align-self: flex-end;
+  background: var(--accent-bg);
+  color: var(--accent-color);
+  border-bottom-right-radius: var(--radius-xs);
+}
+
+.assistantMessage {
+  align-self: flex-start;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border-bottom-left-radius: var(--radius-xs);
+}
+
+.errorMessage {
+  background: var(--error-bg);
+  color: var(--error-color);
+}
+
+.messageContent {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.emptyState {
+  align-self: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--error-bg);
+  border-top: 1px solid var(--error-color);
+  color: var(--error-color);
+  font-size: var(--font-size-sm);
+}
+
+.errorBanner svg {
+  flex-shrink: 0;
+}
+
+.errorDismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--error-color);
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+}
+
+.errorDismiss:hover {
+  opacity: 1;
+}
+
+.inputForm {
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--panel-border);
+  background: var(--panel-header-bg);
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.voiceButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-color);
+  border-radius: var(--radius-md);
+  color: var(--accent-color);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.voiceButton:hover:not(:disabled) {
+  background: var(--accent-color);
+  color: var(--accent-contrast);
+}
+
+.voiceButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.textInput {
+  flex: 1;
+  min-width: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.textInput:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+
+.textInput::placeholder {
+  color: var(--text-muted);
+}
+
+.textInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sendButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--accent-color);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--accent-contrast);
+  cursor: pointer;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.sendButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.sendButton:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.sendButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

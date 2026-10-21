@@ -1,9 +1,34 @@
 # Changelog
 
-## 1.1.0 — work-in-progress checkpoint
+## 1.2.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
 
+## 1.2.0 — 2024-10-21
+
+### Added
+- Voice interface with LLM provider abstraction (mock, OpenAI-compatible, Gemini)
+- VoiceCommandRequest/Response schemas and VoiceProviderStatus schema
+- VoiceService with provider factory pattern and availability checking
+- GET /api/voice/providers and GET /api/voice/providers/{name} endpoints
+- POST /api/voice/command endpoint for processing voice commands
+- VoicePanel React component with provider selector, chat history, and text/voice input
+- Voice actions: fly_to, search, save_location, show_cameras
+- LLM provider configuration in settings (llm_provider, llm_api_key, llm_model, llm_base_url, llm_timeout)
+- Backend voice tests (21 tests covering providers, service, and API endpoints)
+- Frontend VoicePanel tests (6 tests)
+
+### Changed
+- App component integrated VoicePanel with voice action handlers
+- Frontend types extended with VoiceProvider, VoiceCommandRequest, VoiceCommandResponse, VoiceProviderStatus
+- API client extended with voiceService (sendCommand, getProviders, getProvider)
+
+### Security
+- Voice providers validate API keys before making requests
+- Graceful error handling when providers unavailable or misconfigured
+- No API keys exposed to frontend
+
+## 1.1.0 — 2024-10-14
 ## 1.0.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.

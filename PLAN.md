@@ -4,7 +4,7 @@ Each round completes one feature or repair. Future items are planned, not implem
 
 ## Current round
 
-camera-feeds
+voice-interface
 
 ## Roadmap
 
@@ -56,13 +56,17 @@ Tests: `backend/tests/test_cameras.py`
 
 ### voice-interface — Voice interaction with LLM provider abstraction
 
-Status: planned
+Status: done
 
 Acceptance:
 - Provider interface supports OpenAI-compatible and Gemini
 - Voice commands can trigger globe actions (fly to, search)
 - Runtime provider picker in UI
 - Graceful errors when provider unavailable
+
+Implementation: `backend/app/core/config.py`, `backend/app/models/schemas.py`, `backend/app/services/voice.py`, `backend/app/api/voice.py`, `backend/app/main.py`, `backend/tests/test_voice.py`, `frontend/src/services/voice.ts`, `frontend/src/components/VoicePanel.tsx`, `frontend/src/components/VoicePanel.module.css`, `frontend/src/App.tsx`, `frontend/src/types/index.ts`
+
+Tests: `backend/tests/test_voice.py`, `frontend/src/components/VoicePanel.test.tsx`
 
 ### auth-oidc — OIDC authentication with Keycloak
 

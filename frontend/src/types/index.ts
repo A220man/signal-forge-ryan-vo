@@ -56,6 +56,30 @@ export interface SavedLocation {
   createdAt: string
 }
 
+export type VoiceProvider = 'mock' | 'openai' | 'gemini'
+
+export interface VoiceCommandRequest {
+  text: string
+  provider?: VoiceProvider
+  model?: string
+}
+
+export interface VoiceCommandResponse {
+  success: boolean
+  text: string
+  action?: string
+  action_params?: Record<string, unknown>
+  provider: string
+  error?: string
+}
+
+export interface VoiceProviderStatus {
+  provider: string
+  available: boolean
+  model?: string
+  error?: string
+}
+
 export interface ApiError {
   error: string
   detail?: string
