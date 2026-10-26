@@ -1,6 +1,6 @@
 /** Voice service for frontend API communication. */
 
-import type { VoiceCommandRequest, VoiceCommandResponse, VoiceProviderStatus } from '../types'
+import type { VoiceCommandRequest, VoiceCommandResponse, VoiceProviderStatus, ProviderConfigRequest, ProviderConfigResponse } from '../types'
 
 const API_BASE = '/api'
 
@@ -39,6 +39,19 @@ class VoiceService {
 
   async getProvider(providerName: string): Promise<VoiceProviderStatus> {
     return this.request<VoiceProviderStatus>(`/voice/providers/${providerName}`)
+  }
+
+  async configureProvider(request: ProviderConfigRequest): Promise<ProviderConfigResponse> {
+    return this.request<ProviderConfigResponse>('/voice/providers/configure', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+  }
+
+  async setDefaultProvider(providerName: string): Promise<ProviderConfigResponse> {
+    return this.request<ProviderConfigResponse>(`/voice/providers/${providerName}/default`, {
+      method: 'POST',
+    })
   }
 }
 

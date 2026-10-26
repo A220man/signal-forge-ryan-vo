@@ -288,3 +288,194 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+.configureBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.configureBtn:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-md);
+}
+
+.modal {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.modalHeader h4 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modalClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.modalClose:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.modalForm {
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.modalField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.modalField label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.modalField input {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.modalField input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+
+.modalField input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fieldHint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.modalError {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--error-bg);
+  border: 1px solid var(--error-color);
+  border-radius: var(--radius-md);
+  color: var(--error-color);
+  font-size: var(--font-size-sm);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.modalCancel {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.modalCancel:hover:not(:disabled) {
+  background: var(--hover-bg);
+  border-color: var(--accent-color);
+}
+
+.modalCancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modalSubmit {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--accent-color);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--accent-contrast);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  transition: opacity var(--transition-fast);
+}
+
+.modalSubmit:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.modalSubmit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

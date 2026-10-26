@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, FormEvent } from 'react'
-import { MicIcon, MicOffIcon, SendIcon, Loader2Icon, AlertCircleIcon, CheckCircleIcon, SettingsIcon, ChevronDownIcon } from 'lucide-react'
+import { MicIcon, MicOffIcon, SendIcon, Loader2Icon, AlertCircleIcon, CheckCircleIcon, SettingsIcon, ChevronDownIcon, XIcon, KeyIcon } from 'lucide-react'
 import { voiceService } from '@/services/voice'
-import type { VoiceCommandResponse, VoiceProviderStatus, VoiceProvider } from '@/types'
+import type { VoiceCommandResponse, VoiceProviderStatus, VoiceProvider, ProviderConfigRequest } from '@/types'
 import styles from './VoicePanel.module.css'
 
 interface VoicePanelProps {
@@ -17,7 +17,14 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
   const [showProviderSelect, setShowProviderSelect] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const responseId = useState(0)[0] // Use a ref-like pattern with useState for unique IDs
+  const [showConfig, setShowConfig] = useState(false)
+  const [configProvider, setConfigProvider] = useState<string>('openai')
+  const [configApiKey, setConfigApiKey] = useState('')
+  const [configBaseUrl, setConfigBaseUrl] = useState('')
+  const [configModel, setConfigModel] = useState('')
+  const [configError, setConfigError] = useState<string | null>(null)
+  const [configLoading, setConfigLoading] = useState(false)
+  const responseId = useState(0)[0]
 
   // Load providers on mount
   useEffect(() => {
@@ -106,6 +113,49 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
     }
   }, [handleSubmit])
 
+  const handleConfigureProvider = useCallback(async (e: FormEvent) => {
+    e.preventDefault()
+    if (!configApiKey.trim() || configLoading) return
+
+    setConfigLoading(true)
+    setConfigError(null)
+
+    try {
+      const request: ProviderConfigRequest = {
+        name: configProvider,
+        provider_type: configProvider as 'openai' | 'gemini' | 'mock',
+        api_key: configApiKey.trim(),
+        base_url: configBaseUrl.trim() || undefined,
+        model: configModel.trim() || undefined,
+        set_as_default: true,
+      }
+
+      const response = await voiceService.configureProvider(request)
+
+      if (response.success) {
+        setShowConfig(false)
+        setConfigApiKey('')
+        setConfigBaseUrl('')
+        setConfigModel('')
+        setConfigError(null)
+        // Reload providers to reflect the new configuration
+        await loadProviders()
+      } else {
+        setConfigError(response.message)
+      }
+    } catch (err) {
+      setConfigError(err instanceof Error ? err.message : 'Failed to configure provider')
+    } finally {
+      setConfigLoading(false)
+    }
+  }, [configProvider, configApiKey, configBaseUrl, configModel, configLoading, loadProviders])
+
+  const openConfig = (provider: string) => {
+    setConfigProvider(provider)
+    setShowConfig(true)
+    setConfigError(null)
+  }
+
   const getProviderDisplayName = (provider: string) => {
     const names: Record<string, string> = {
       mock: 'Mock (Demo)',
@@ -113,6 +163,21 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
       gemini: 'Google Gemini',
     }
     return names[provider] || provider
+  }
+
+  const getDefaultModel = (provider: string) => {
+    const models: Record<string, string> = {
+      openai: 'gpt-4o-mini',
+      gemini: 'gemini-1.5-flash',
+    }
+    return models[provider] || ''
+  }
+
+  const getDefaultBaseUrl = (provider: string) => {
+    const urls: Record<string, string> = {
+      openai: 'https://api.openai.com/v1',
+    }
+    return urls[provider] || ''
   }
 
   return (
@@ -142,6 +207,9 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
                     if (provider.available) {
                       setSelectedProvider(provider.provider as VoiceProvider)
                       setShowProviderSelect(false)
+                    } else if (provider.provider !== 'mock') {
+                      // Open config for unavailable providers
+                      openConfig(provider.provider)
                     }
                   }}
                 >
@@ -153,6 +221,18 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
                       <AlertCircleIcon size={14} className={styles.unavailableIcon} />
                       {provider.error && <span className={styles.errorText}>{provider.error}</span>}
                     </>
+                  )}
+                  {!provider.available && provider.provider !== 'mock' && (
+                    <button
+                      className={styles.configureBtn}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openConfig(provider.provider)
+                      }}
+                      aria-label={`Configure ${getProviderDisplayName(provider.provider)}`}
+                    >
+                      <KeyIcon size={12} />
+                    </button>
                   )}
                 </li>
               ))}
@@ -216,6 +296,75 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
           </button>
         </div>
       </form>
+
+      {/* Provider Configuration Modal */}
+      {showConfig && (
+        <div className={styles.modalOverlay} onClick={() => setShowConfig(false)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h4>Configure {getProviderDisplayName(configProvider)}</h4>
+              <button className={styles.modalClose} onClick={() => setShowConfig(false)} aria-label="Close">
+                <XIcon size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleConfigureProvider} className={styles.modalForm}>
+              <div className={styles.modalField}>
+                <label htmlFor="apiKey">API Key *</label>
+                <input
+                  id="apiKey"
+                  type="password"
+                  value={configApiKey}
+                  onChange={e => setConfigApiKey(e.target.value)}
+                  placeholder="Enter your API key"
+                  required
+                  disabled={configLoading}
+                />
+              </div>
+              <div className={styles.modalField}>
+                <label htmlFor="baseUrl">Base URL</label>
+                <input
+                  id="baseUrl"
+                  type="url"
+                  value={configBaseUrl}
+                  onChange={e => setConfigBaseUrl(e.target.value)}
+                  placeholder={getDefaultBaseUrl(configProvider)}
+                  disabled={configLoading}
+                />
+                {configProvider === 'openai' && (
+                  <span className={styles.fieldHint}>Leave empty for default: {getDefaultBaseUrl(configProvider)}</span>
+                )}
+              </div>
+              <div className={styles.modalField}>
+                <label htmlFor="model">Model</label>
+                <input
+                  id="model"
+                  type="text"
+                  value={configModel}
+                  onChange={e => setConfigModel(e.target.value)}
+                  placeholder={getDefaultModel(configProvider)}
+                  disabled={configLoading}
+                />
+                <span className={styles.fieldHint}>Leave empty for default: {getDefaultModel(configProvider)}</span>
+              </div>
+              {configError && (
+                <div className={styles.modalError}>
+                  <AlertCircleIcon size={16} />
+                  <span>{configError}</span>
+                </div>
+              )}
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.modalCancel} onClick={() => setShowConfig(false)} disabled={configLoading}>
+                  Cancel
+                </button>
+                <button type="submit" className={styles.modalSubmit} disabled={!configApiKey.trim() || configLoading}>
+                  {configLoading ? <Loader2Icon size={16} /> : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

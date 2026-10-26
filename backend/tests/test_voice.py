@@ -11,6 +11,7 @@ from app.services.voice import (
     OpenAICompatibleProvider,
     GeminiProvider,
 )
+from app.api.voice import ProviderConfigRequest, ProviderConfigResponse
 from app.models.schemas import VoiceCommandRequest, VoiceProvider
 
 
@@ -250,3 +251,113 @@ class TestVoiceAPI:
         response = await client.get("/api/voice/providers/nonexistent")
 
         assert response.status_code == 404
+class TestProviderConfigAPI:
+    """Test provider configuration API endpoints."""
+
+    @pytest.mark.asyncio
+    async def test_configure_provider_openai(self, client: AsyncClient):
+        response = await client.post(
+            "/api/voice/providers/configure",
+            json={
+                "name": "openai",
+                "provider_type": "openai",
+                "api_key": "test-key-123",
+                "base_url": "https://api.openai.com/v1",
+                "model": "gpt-4o-mini",
+                "set_as_default": True,
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["provider_name"] == "openai"
+
+        # Verify the provider was added
+        list_response = await client.get("/api/voice/providers")
+        providers = list_response.json()
+        openai_provider = next((p for p in providers if p["provider"] == "openai"), None)
+        assert openai_provider is not None
+        # Note: availability will be False since we're using a fake key, but provider should exist
+
+    @pytest.mark.asyncio
+    async def test_configure_provider_gemini(self, client: AsyncClient):
+        response = await client.post(
+            "/api/voice/providers/configure",
+            json={
+                "name": "gemini",
+                "provider_type": "gemini",
+                "api_key": "test-gemini-key",
+                "model": "gemini-1.5-flash",
+                "set_as_default": False,
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["provider_name"] == "gemini"
+
+        # Verify the provider was added but not set as default
+        list_response = await client.get("/api/voice/providers")
+        providers = list_response.json()
+        gemini_provider = next((p for p in providers if p["provider"] == "gemini"), None)
+        assert gemini_provider is not None
+
+        # Default should still be mock
+        default_response = await client.post(
+            "/api/voice/command",
+            json={"text": "fly to London"},
+        )
+        assert default_response.json()["provider"] == "mock"
+
+    @pytest.mark.asyncio
+    async def test_configure_provider_invalid_type(self, client: AsyncClient):
+        response = await client.post(
+            "/api/voice/providers/configure",
+            json={
+                "name": "invalid",
+                "provider_type": "invalid",
+                "api_key": "test-key",
+            },
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert "Unsupported provider type" in data["detail"]
+
+    @pytest.mark.asyncio
+    async def test_set_default_provider(self, client: AsyncClient):
+        # First configure a provider
+        await client.post(
+            "/api/voice/providers/configure",
+            json={
+                "name": "openai",
+                "provider_type": "openai",
+                "api_key": "test-key-123",
+                "set_as_default": False,
+            },
+        )
+
+        # Now set it as default
+        response = await client.post("/api/voice/providers/openai/default")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["provider_name"] == "openai"
+
+        # Verify it's now the default
+        default_response = await client.post(
+            "/api/voice/command",
+            json={"text": "fly to London"},
+        )
+        assert default_response.json()["provider"] == "openai"
+
+    @pytest.mark.asyncio
+    async def test_set_default_provider_not_found(self, client: AsyncClient):
+        response = await client.post("/api/voice/providers/nonexistent/default")
+
+        assert response.status_code == 404
+        data = response.json()
+        assert "not found" in data["detail"].lower()
