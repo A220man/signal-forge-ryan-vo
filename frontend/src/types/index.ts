@@ -85,3 +85,18 @@ export interface ApiError {
   detail?: string
   timestamp: string
 }
+export interface ProviderConfigRequest {
+  name: string
+  provider_type: 'openai' | 'gemini' | 'mock'
+  api_key: string
+  base_url?: string
+  model?: string
+  timeout?: number
+  set_as_default?: boolean
+}
+
+export interface ProviderConfigResponse {
+  success: boolean
+  message: string
+  provider_name?: string
+}

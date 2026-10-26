@@ -428,6 +428,48 @@ class VoiceService:
 
         self._initialized = True
 
+    def register_provider(
+        self,
+        name: str,
+        provider_type: str,
+        api_key: str,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        timeout: Optional[float] = None,
+    ) -> bool:
+        """Register or update a provider at runtime."""
+        self._initialize_providers()
+
+        if provider_type == "openai" or provider_type == "openai-compatible":
+            self._providers[name] = OpenAICompatibleProvider(
+                api_key=api_key,
+                base_url=base_url or "https://api.openai.com/v1",
+                model=model or "gpt-4o-mini",
+                timeout=timeout or 30.0,
+            )
+            return True
+        elif provider_type == "gemini":
+            self._providers[name] = GeminiProvider(
+                api_key=api_key,
+                model=model or "gemini-1.5-flash",
+                timeout=timeout or 30.0,
+            )
+            return True
+        elif provider_type == "mock":
+            self._providers[name] = MockVoiceProvider()
+            return True
+
+        return False
+
+    def set_default_provider(self, name: str) -> bool:
+        """Set the default provider."""
+        self._initialize_providers()
+        if name in self._providers:
+            self._default_provider = self._providers[name]
+            return True
+        return False
+
+
     def get_provider(self, name: Optional[str] = None) -> VoiceProviderBase:
         """Get a provider by name, or the default provider."""
         self._initialize_providers()
