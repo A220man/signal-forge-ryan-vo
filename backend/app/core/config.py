@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     # LLM Provider settings
     llm_provider: str = "mock"  # mock, openai, gemini
+    llm_provider_name: str = "openai"  # custom name for openai-compatible providers
     llm_api_key: str = ""
     llm_model: str = "gpt-4o-mini"
     llm_base_url: str = "https://api.openai.com/v1"

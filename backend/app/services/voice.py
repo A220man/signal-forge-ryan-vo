@@ -18,6 +18,36 @@ from app.models.schemas import (
 )
 
 
+# Shared system prompt for all LLM providers
+SYSTEM_PROMPT = """You are a voice assistant for Signal Forge, a 3D globe application with live camera feeds.
+You can help users navigate the globe, search for locations, and view camera feeds.
+
+Respond with a JSON object containing:
+{
+  "response": "Natural language response to the user",
+  "action": "fly_to|search|save_location|show_cameras|null",
+  "action_params": {"location": "..."} or {"query": "..."} or {}
+}
+
+Available actions:
+- fly_to: Navigate to a location (params: location: string)
+- search: Search for a location (params: query: string)
+- save_location: Save current camera position (params: name: string)
+- show_cameras: Show nearby traffic cameras (params: {})
+
+Only include action if the user's request matches one of these actions.
+If no action matches, set action to null and action_params to {}."""
+
+
+# Retry configuration for LLM API calls
+LLM_RETRY_CONFIG = retry(
+    reraise=True,
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
+    retry=retry_if_exception_type((httpx.TimeoutException, httpx.RequestError)),
+)
+
+
 class VoiceProviderBase(ABC):
     """Abstract base class for voice/LLM providers."""
 
@@ -99,12 +129,12 @@ class MockVoiceProvider(VoiceProviderBase):
 class OpenAICompatibleProvider(VoiceProviderBase):
     """OpenAI-compatible provider (OpenAI, LiteLLM, OpenRouter, Ollama, etc.)."""
 
-    def __init__(self, api_key: str, base_url: str, model: str, timeout: float = 30.0):
+    def __init__(self, api_key: str, base_url: str, model: str, timeout: float = 30.0, provider_name: str = "openai"):
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
-        self.name = "openai"
+        self.name = provider_name
 
     def _get_headers(self) -> dict:
         return {
@@ -112,26 +142,15 @@ class OpenAICompatibleProvider(VoiceProviderBase):
             "Content-Type": "application/json",
         }
 
-    def _build_system_prompt(self) -> str:
-        return """You are a voice assistant for Signal Forge, a 3D globe application with live camera feeds.
-You can help users navigate the globe, search for locations, and view camera feeds.
-
-Respond with a JSON object containing:
-{
-  "response": "Natural language response to the user",
-  "action": "fly_to|search|save_location|show_cameras|null",
-  "action_params": {"location": "..."} or {"query": "..."} or {}
-}
-
-Available actions:
-- fly_to: Navigate to a location (params: location: string)
-- search: Search for a location (params: query: string)
-- save_location: Save current camera position (params: name: string)
-- show_cameras: Show nearby traffic cameras (params: {})
-
-Only include action if the user's request matches one of these actions.
-If no action matches, set action to null and action_params to {}.
-"""
+    @LLM_RETRY_CONFIG
+    async def _make_request(self, payload: dict) -> httpx.Response:
+        """Make HTTP request with retry logic."""
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            return await client.post(
+                f"{self.base_url}/chat/completions",
+                headers=self._get_headers(),
+                json=payload,
+            )
 
     async def process_command(self, request: VoiceCommandRequest) -> VoiceCommandResponse:
         if not self.api_key:
@@ -142,12 +161,10 @@ If no action matches, set action to null and action_params to {}.
                 error="Missing API key",
             )
 
-        system_prompt = self._build_system_prompt()
-
         payload = {
             "model": request.model or self.model,
             "messages": [
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": request.text},
             ],
             "temperature": 0.3,
@@ -156,40 +173,35 @@ If no action matches, set action to null and action_params to {}.
         }
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=self._get_headers(),
-                    json=payload,
+            response = await self._make_request(payload)
+
+            if response.status_code != 200:
+                error_detail = response.text
+                return VoiceCommandResponse(
+                    success=False,
+                    text=f"Provider error: {response.status_code}",
+                    provider=self.name,
+                    error=f"HTTP {response.status_code}: {error_detail}",
                 )
 
-                if response.status_code != 200:
-                    error_detail = response.text
-                    return VoiceCommandResponse(
-                        success=False,
-                        text=f"Provider error: {response.status_code}",
-                        provider=self.name,
-                        error=f"HTTP {response.status_code}: {error_detail}",
-                    )
+            data = response.json()
+            content = data.get("choices", [{}])[0].get("message", {}).get("content", "{}")
 
-                data = response.json()
-                content = data.get("choices", [{}])[0].get("message", {}).get("content", "{}")
-
-                try:
-                    parsed = json.loads(content)
-                    return VoiceCommandResponse(
-                        success=True,
-                        text=parsed.get("response", "Command processed"),
-                        action=parsed.get("action"),
-                        action_params=parsed.get("action_params", {}),
-                        provider=self.name,
-                    )
-                except json.JSONDecodeError:
-                    return VoiceCommandResponse(
-                        success=True,
-                        text=content,
-                        provider=self.name,
-                    )
+            try:
+                parsed = json.loads(content)
+                return VoiceCommandResponse(
+                    success=True,
+                    text=parsed.get("response", "Command processed"),
+                    action=parsed.get("action"),
+                    action_params=parsed.get("action_params", {}),
+                    provider=self.name,
+                )
+            except json.JSONDecodeError:
+                return VoiceCommandResponse(
+                    success=True,
+                    text=content,
+                    provider=self.name,
+                )
 
         except httpx.TimeoutException:
             return VoiceCommandResponse(
@@ -249,33 +261,21 @@ If no action matches, set action to null and action_params to {}.
 class GeminiProvider(VoiceProviderBase):
     """Google Gemini provider."""
 
-    def __init__(self, api_key: str, model: str = "gemini-1.5-flash", timeout: float = 30.0):
+    def __init__(self, api_key: str, model: str = "gemini-1.5-flash", timeout: float = 30.0, base_url: str = "https://generativelanguage.googleapis.com/v1beta"):
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
         self.name = "gemini"
-        self.base_url = "https://generativelanguage.googleapis.com/v1beta"
+        self.base_url = base_url.rstrip("/")
 
-    def _build_system_prompt(self) -> str:
-        return """You are a voice assistant for Signal Forge, a 3D globe application with live camera feeds.
-You can help users navigate the globe, search for locations, and view camera feeds.
-
-Respond with a JSON object containing:
-{
-  "response": "Natural language response to the user",
-  "action": "fly_to|search|save_location|show_cameras|null",
-  "action_params": {"location": "..."} or {"query": "..."} or {}
-}
-
-Available actions:
-- fly_to: Navigate to a location (params: location: string)
-- search: Search for a location (params: query: string)
-- save_location: Save current camera position (params: name: string)
-- show_cameras: Show nearby traffic cameras (params: {})
-
-Only include action if the user's request matches one of these actions.
-If no action matches, set action to null and action_params to {}.
-"""
+    @LLM_RETRY_CONFIG
+    async def _make_request(self, payload: dict) -> httpx.Response:
+        """Make HTTP request with retry logic."""
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            return await client.post(
+                f"{self.base_url}/models/{self.model}:generateContent?key={self.api_key}",
+                json=payload,
+            )
 
     async def process_command(self, request: VoiceCommandRequest) -> VoiceCommandResponse:
         if not self.api_key:
@@ -286,11 +286,9 @@ If no action matches, set action to null and action_params to {}.
                 error="Missing API key",
             )
 
-        system_prompt = self._build_system_prompt()
-
         payload = {
             "contents": [
-                {"role": "user", "parts": [{"text": f"{system_prompt}\n\nUser: {request.text}"}]}
+                {"role": "user", "parts": [{"text": f"{SYSTEM_PROMPT}\n\nUser: {request.text}"}]}
             ],
             "generationConfig": {
                 "temperature": 0.3,
@@ -300,39 +298,35 @@ If no action matches, set action to null and action_params to {}.
         }
 
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    f"{self.base_url}/models/{self.model}:generateContent?key={self.api_key}",
-                    json=payload,
+            response = await self._make_request(payload)
+
+            if response.status_code != 200:
+                error_detail = response.text
+                return VoiceCommandResponse(
+                    success=False,
+                    text=f"Provider error: {response.status_code}",
+                    provider=self.name,
+                    error=f"HTTP {response.status_code}: {error_detail}",
                 )
 
-                if response.status_code != 200:
-                    error_detail = response.text
-                    return VoiceCommandResponse(
-                        success=False,
-                        text=f"Provider error: {response.status_code}",
-                        provider=self.name,
-                        error=f"HTTP {response.status_code}: {error_detail}",
-                    )
+            data = response.json()
+            content = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "{}")
 
-                data = response.json()
-                content = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "{}")
-
-                try:
-                    parsed = json.loads(content)
-                    return VoiceCommandResponse(
-                        success=True,
-                        text=parsed.get("response", "Command processed"),
-                        action=parsed.get("action"),
-                        action_params=parsed.get("action_params", {}),
-                        provider=self.name,
-                    )
-                except json.JSONDecodeError:
-                    return VoiceCommandResponse(
-                        success=True,
-                        text=content,
-                        provider=self.name,
-                    )
+            try:
+                parsed = json.loads(content)
+                return VoiceCommandResponse(
+                    success=True,
+                    text=parsed.get("response", "Command processed"),
+                    action=parsed.get("action"),
+                    action_params=parsed.get("action_params", {}),
+                    provider=self.name,
+                )
+            except json.JSONDecodeError:
+                return VoiceCommandResponse(
+                    success=True,
+                    text=content,
+                    provider=self.name,
+                )
 
         except httpx.TimeoutException:
             return VoiceCommandResponse(
@@ -407,11 +401,14 @@ class VoiceService:
 
         # Add OpenAI-compatible provider if configured
         if self.settings.llm_api_key and self.settings.llm_provider in ("openai", "openai-compatible"):
+            # Allow custom provider name for openai-compatible services
+            provider_name = getattr(self.settings, 'llm_provider_name', 'openai')
             self._providers["openai"] = OpenAICompatibleProvider(
                 api_key=self.settings.llm_api_key,
                 base_url=self.settings.llm_base_url,
                 model=self.settings.llm_model,
                 timeout=self.settings.llm_timeout,
+                provider_name=provider_name,
             )
 
         # Add Gemini provider if configured
@@ -446,6 +443,7 @@ class VoiceService:
                 base_url=base_url or "https://api.openai.com/v1",
                 model=model or "gpt-4o-mini",
                 timeout=timeout or 30.0,
+                provider_name=name,  # Use the custom name
             )
             return True
         elif provider_type == "gemini":
