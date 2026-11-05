@@ -101,17 +101,62 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
       return
     }
 
-    // Use a simple prompt as fallback for voice input
-    const transcript = prompt('Speak your command (or type it):')
-    if (transcript) {
-      setInputText(transcript)
-      // Create a synthetic form submit event
-      const form = document.createElement('form')
-      const event = new Event('submit', { bubbles: true, cancelable: true })
-      form.dispatchEvent(event)
-      handleSubmit(event as unknown as React.FormEvent)
+    // Check if we're already listening
+    if (isListening) {
+      setIsListening(false)
+      return
     }
-  }, [handleSubmit])
+
+    // Initialize speech recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    const recognition = new SpeechRecognition()
+
+    recognition.continuous = false
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+
+    let finalTranscript = ''
+
+    recognition.onstart = () => {
+      setIsListening(true)
+      setError(null)
+    }
+
+    recognition.onresult = (event) => {
+      let interimTranscript = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript
+        } else {
+          interimTranscript += transcript
+        }
+      }
+      // Show interim results in the input field
+      setInputText(finalTranscript + interimTranscript)
+    }
+
+    recognition.onerror = (event) => {
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        setError(`Speech recognition error: ${event.error}`)
+      }
+      setIsListening(false)
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+      // If we have a final transcript, submit it
+      if (finalTranscript.trim()) {
+        // Create a synthetic form submit event
+        const form = document.createElement('form')
+        const event = new Event('submit', { bubbles: true, cancelable: true })
+        form.dispatchEvent(event)
+        handleSubmit(event as unknown as React.FormEvent)
+      }
+    }
+
+    recognition.start()
+  }, [isListening, handleSubmit])
 
   const handleConfigureProvider = useCallback(async (e: FormEvent) => {
     e.preventDefault()

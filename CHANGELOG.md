@@ -1,9 +1,18 @@
 # Changelog
 
-## 1.4.0 — work-in-progress checkpoint
+## 1.5.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
 
+## 1.4.0 — work-in-progress checkpoint
+
+### Added
+- Web Speech API integration for real voice input in VoicePanel (microphone button now uses browser speech recognition instead of prompt() fallback)
+
+### Changed
+- VoicePanel.handleVoiceInput uses SpeechRecognition API with interim results display
+
+Partial code published for continued development. Known issues: STATUS.md.
 ## 1.3.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
