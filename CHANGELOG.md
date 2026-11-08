@@ -1,6 +1,22 @@
 # Changelog
 
+## 1.6.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
 ## 1.5.0 — work-in-progress checkpoint
+
+### Added
+- Enhanced mock voice provider with additional commands: help, delete_location, list_locations
+- Mock provider now preserves case for extracted parameters (location names, custom names)
+- Frontend handlers for new voice actions: delete_location, list_locations, help
+- 9 new backend tests covering enhanced mock provider functionality
+
+### Changed
+- MockVoiceProvider.process_command uses improved pattern matching with proper command precedence
+- Voice command extraction preserves original text casing for better UX
+
+Partial code published for continued development. Known issues: STATUS.md.
 
 Partial code published for continued development. Known issues: STATUS.md.
 

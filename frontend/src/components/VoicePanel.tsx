@@ -4,6 +4,53 @@ import { voiceService } from '@/services/voice'
 import type { VoiceCommandResponse, VoiceProviderStatus, VoiceProvider, ProviderConfigRequest } from '@/types'
 import styles from './VoicePanel.module.css'
 
+// Type declarations for Web Speech API
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number
+  results: SpeechRecognitionResultList
+}
+
+interface SpeechRecognitionResultList {
+  length: number
+  [index: number]: SpeechRecognitionResult
+}
+
+interface SpeechRecognitionResult {
+  length: number
+  [index: number]: SpeechRecognitionAlternative
+  isFinal: boolean
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string
+  confidence: number
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+  message: string
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  onstart: (() => void) | null
+  onresult: ((event: SpeechRecognitionEvent) => void) | null
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null
+  onend: (() => void) | null
+  start(): void
+  stop(): void
+  abort(): void
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: { new (): SpeechRecognition }
+    webkitSpeechRecognition: { new (): SpeechRecognition }
+  }
+}
+
 interface VoicePanelProps {
   onAction?: (action: string, params: Record<string, unknown>) => void
 }
@@ -122,7 +169,7 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
       setError(null)
     }
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interimTranscript = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript
@@ -136,7 +183,7 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
       setInputText(finalTranscript + interimTranscript)
     }
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (event.error !== 'no-speech' && event.error !== 'aborted') {
         setError(`Speech recognition error: ${event.error}`)
       }
