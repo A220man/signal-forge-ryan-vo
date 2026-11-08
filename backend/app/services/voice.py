@@ -76,36 +76,107 @@ class MockVoiceProvider(VoiceProviderBase):
     async def process_command(self, request: VoiceCommandRequest) -> VoiceCommandResponse:
         """Process command with simple pattern matching for demo purposes."""
         text = request.text.lower()
+        original_text = request.text  # Preserve original for parameter extraction
 
         # Simple command parsing for demo
         action = None
-        action_params = {}
+        action_params: dict = {}
+        response_text = ""
 
-        if "fly to" in text or "go to" in text or "navigate to" in text:
+        # Check for help command first
+        if "help" in text or "what can you do" in text or "commands" in text:
+            action = "help"
+            action_params = {}
+            response_text = (
+                "I can help you navigate the globe and manage cameras. Try these commands:\n"
+                "• \"fly to London\" or \"go to Paris\" — navigate to a location\n"
+                "• \"search for Tokyo\" or \"find New York\" — search for a place\n"
+                "• \"save this location\" or \"save location as Home\" — save current camera position\n"
+                "• \"delete location Home\" — remove a saved location\n"
+                "• \"list locations\" or \"show saved locations\" — list all saved places\n"
+                "• \"show cameras\" or \"traffic cameras\" — load nearby traffic cameras\n"
+                "• \"help\" — show this message"
+            )
+        # Check list/show saved locations BEFORE save (since "saved" contains "save")
+        elif "list" in text and ("location" in text or "place" in text or "spot" in text or "saved" in text):
+            action = "list_locations"
+            action_params = {}
+            response_text = "Listing saved locations"
+        elif "show" in text and "saved" in text and ("location" in text or "place" in text or "spot" in text):
+            action = "list_locations"
+            action_params = {}
+            response_text = "Listing saved locations"
+        elif any(prefix in text for prefix in ["fly to ", "go to ", "navigate to "]):
             action = "fly_to"
-            # Extract location name (simple heuristic)
             for prefix in ["fly to ", "go to ", "navigate to "]:
                 if prefix in text:
-                    location = text.split(prefix, 1)[1].strip().rstrip(".,!?")
+                    # Extract from original text to preserve case
+                    prefix_len = len(prefix)
+                    # Find the prefix in original text (case-insensitive)
+                    idx = original_text.lower().find(prefix)
+                    if idx >= 0:
+                        location = original_text[idx + prefix_len:].strip().rstrip(".,!?")
+                    else:
+                        location = text.split(prefix, 1)[1].strip().rstrip(".,!?")
                     action_params = {"location": location}
+                    response_text = f"Flying to {location}"
                     break
-        elif "search for" in text or "find " in text:
+        elif any(prefix in text for prefix in ["search for ", "find "]):
             action = "search"
             for prefix in ["search for ", "find "]:
                 if prefix in text:
-                    query = text.split(prefix, 1)[1].strip().rstrip(".,!?")
+                    # Extract from original text to preserve case
+                    prefix_len = len(prefix)
+                    idx = original_text.lower().find(prefix)
+                    if idx >= 0:
+                        query = original_text[idx + prefix_len:].strip().rstrip(".,!?")
+                    else:
+                        query = text.split(prefix, 1)[1].strip().rstrip(".,!?")
                     action_params = {"query": query}
+                    response_text = f"Searching for {query}"
                     break
-        elif "save" in text and ("location" in text or "place" in text):
+        elif "save" in text and ("location" in text or "place" in text or "spot" in text):
             action = "save_location"
-            action_params = {"name": "Voice saved location"}
+            # Extract custom name if provided: "save location as Home"
+            if " as " in text:
+                # Extract from original text to preserve case
+                name = original_text.split(" as ", 1)[1].strip().rstrip(".,!?")
+                action_params = {"name": name}
+                response_text = f"Saving current location as {name}"
+            else:
+                action_params = {"name": "Voice saved location"}
+                response_text = "Saving current location"
+        elif "delete" in text and ("location" in text or "place" in text or "spot" in text):
+            action = "delete_location"
+            # Extract name: "delete location Home" or "delete Home"
+            for prefix in ["delete location ", "delete place ", "delete spot ", "delete "]:
+                if prefix in text:
+                    # Extract from original text to preserve case
+                    prefix_len = len(prefix)
+                    idx = original_text.lower().find(prefix)
+                    if idx >= 0:
+                        name = original_text[idx + prefix_len:].strip().rstrip(".,!?")
+                    else:
+                        name = text.split(prefix, 1)[1].strip().rstrip(".,!?")
+                    if name:
+                        action_params = {"name": name}
+                        response_text = f"Deleting saved location: {name}"
+                    else:
+                        action_params = {"name": ""}
+                        response_text = "Please specify a location name to delete"
+                    break
         elif "camera" in text or "traffic cam" in text:
             action = "show_cameras"
             action_params = {}
-
-        response_text = f"Mock provider processed: '{request.text}'"
-        if action:
-            response_text += f" → Action: {action} with params {action_params}"
+            response_text = "Loading nearby traffic cameras"
+        else:
+            # Unknown command - return helpful response
+            action = None
+            action_params = {}
+            response_text = (
+                f"I didn't understand: '{request.text}'. "
+                "Try \"help\" for available commands."
+            )
 
         return VoiceCommandResponse(
             success=True,

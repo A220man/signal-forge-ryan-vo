@@ -235,6 +235,34 @@ export function App() {
         }
         break
       }
+      case 'delete_location': {
+        const name = params.name as string
+        if (name) {
+          const location = savedLocations.find(loc => loc.name.toLowerCase() === name.toLowerCase())
+          if (location) {
+            handleDeleteLocation(location.id)
+            info(`Deleted saved location: ${name}`)
+          } else {
+            showError(`Saved location not found: ${name}`)
+          }
+        } else {
+          showError('Please specify a location name to delete')
+        }
+        break
+      }
+      case 'list_locations': {
+        if (savedLocations.length > 0) {
+          const names = savedLocations.map(loc => loc.name).join(', ')
+          info(`Saved locations: ${names}`)
+        } else {
+          info('No saved locations yet')
+        }
+        break
+      }
+      case 'help': {
+        // Help text is already provided in the voice response
+        break
+      }
       case 'show_cameras': {
         // Trigger camera fetch for current position
         fetchCameras()
@@ -242,7 +270,7 @@ export function App() {
         break
       }
     }
-  }, [currentCamera, fetchCameras, handleSaveLocation, info, showError])
+  }, [currentCamera, fetchCameras, handleSaveLocation, savedLocations, handleDeleteLocation, info, showError])
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
       <GlobeComponent ref={globeRef} />

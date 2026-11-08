@@ -92,7 +92,99 @@ class TestVoiceProviders:
         assert status.provider == "mock"
         assert status.available is True
         assert status.model == "mock"
+    @pytest.mark.asyncio
+    async def test_mock_provider_help_command(self):
+        provider = MockVoiceProvider()
+        request = VoiceCommandRequest(text="help")
+        response = await provider.process_command(request)
 
+        assert response.success is True
+        assert response.provider == "mock"
+        assert response.action == "help"
+        assert "help" in response.text.lower()
+
+    @pytest.mark.asyncio
+    async def test_mock_provider_what_can_you_do(self):
+        provider = MockVoiceProvider()
+        request = VoiceCommandRequest(text="what can you do")
+        response = await provider.process_command(request)
+
+        assert response.success is True
+        assert response.action == "help"
+
+    @pytest.mark.asyncio
+    async def test_mock_provider_save_location_with_name(self):
+        provider = MockVoiceProvider()
+        request = VoiceCommandRequest(text="save location as Home")
+        response = await provider.process_command(request)
+
+        assert response.success is True
+        assert response.action == "save_location"
+        assert response.action_params.get("name") == "Home"
+
+    @pytest.mark.asyncio
+    async def test_mock_provider_delete_location(self):
+        provider = MockVoiceProvider()
+        request = VoiceCommandRequest(text="delete location Home")
+        response = await provider.process_command(request)
+
+        assert response.success is True
+        assert response.action == "delete_location"
+        assert response.action_params.get("name") == "Home"
+
+    @pytest.mark.asyncio
+    async def test_mock_provider_list_locations(self):
+        provider = MockVoiceProvider()
+        request = VoiceCommandRequest(text="list locations")
+        response = await provider.process_command(request)
+
+        assert response.success is True
+        assert response.action == "list_locations"
+
+    @pytest.mark.asyncio
+    async def test_mock_provider_show_saved_locations(self):
+        provider = MockVoiceProvider()
+        request = VoiceCommandRequest(text="show saved locations")
+        response = await provider.process_command(request)
+
+        assert response.success is True
+        assert response.action == "list_locations"
+
+    @pytest.mark.asyncio
+    async def test_mock_provider_fly_to_variants(self):
+        provider = MockVoiceProvider()
+
+        # Test "go to"
+        request = VoiceCommandRequest(text="go to Paris")
+        response = await provider.process_command(request)
+        assert response.action == "fly_to"
+        assert response.action_params.get("location") == "Paris"
+
+        # Test "navigate to"
+        request = VoiceCommandRequest(text="navigate to Tokyo")
+        response = await provider.process_command(request)
+        assert response.action == "fly_to"
+        assert response.action_params.get("location") == "Tokyo"
+
+    @pytest.mark.asyncio
+    async def test_mock_provider_search_variants(self):
+        provider = MockVoiceProvider()
+
+        # Test "find"
+        request = VoiceCommandRequest(text="find Berlin")
+        response = await provider.process_command(request)
+        assert response.action == "search"
+        assert response.action_params.get("query") == "Berlin"
+
+    @pytest.mark.asyncio
+    async def test_mock_provider_unknown_command_helpful(self):
+        provider = MockVoiceProvider()
+        request = VoiceCommandRequest(text="what is the weather like")
+        response = await provider.process_command(request)
+
+        assert response.success is True
+        assert response.action is None
+        assert "help" in response.text.lower()
     @pytest.mark.asyncio
     async def test_openai_provider_no_key(self):
         provider = OpenAICompatibleProvider(api_key="", base_url="https://api.openai.com/v1", model="gpt-4o-mini")
