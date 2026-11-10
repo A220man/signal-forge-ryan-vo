@@ -1,6 +1,18 @@
 # Changelog
 
+## 1.7.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
 ## 1.6.0 — work-in-progress checkpoint
+
+### Added
+- Provider type selector in VoicePanel configuration modal, enabling custom OpenAI-compatible provider names (Ollama, OpenRouter, LiteLLM, etc.) with proper type selection (OpenAI Compatible, Google Gemini, Mock)
+- Dynamic base URL and model defaults based on selected provider type
+
+### Changed
+- VoicePanel configuration modal now separates provider name from provider type
+- Frontend ProviderConfigRequest type extended to include 'openai-compatible' provider type
 
 Partial code published for continued development. Known issues: STATUS.md.
 

@@ -66,6 +66,7 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [showConfig, setShowConfig] = useState(false)
   const [configProvider, setConfigProvider] = useState<string>('openai')
+  const [configProviderType, setConfigProviderType] = useState<'openai' | 'openai-compatible' | 'gemini' | 'mock'>('openai')
   const [configApiKey, setConfigApiKey] = useState('')
   const [configBaseUrl, setConfigBaseUrl] = useState('')
   const [configModel, setConfigModel] = useState('')
@@ -215,7 +216,7 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
     try {
       const request: ProviderConfigRequest = {
         name: configProvider,
-        provider_type: configProvider as 'openai' | 'gemini' | 'mock',
+        provider_type: configProviderType,
         api_key: configApiKey.trim(),
         base_url: configBaseUrl.trim() || undefined,
         model: configModel.trim() || undefined,
@@ -240,10 +241,19 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
     } finally {
       setConfigLoading(false)
     }
-  }, [configProvider, configApiKey, configBaseUrl, configModel, configLoading, loadProviders])
+  }, [configProvider, configProviderType, configApiKey, configBaseUrl, configModel, configLoading, loadProviders])
 
   const openConfig = (provider: string) => {
     setConfigProvider(provider)
+    // Set default provider type based on provider name
+    if (provider === 'gemini') {
+      setConfigProviderType('gemini')
+    } else if (provider === 'mock') {
+      setConfigProviderType('mock')
+    } else {
+      // For openai and custom providers, default to openai-compatible
+      setConfigProviderType('openai-compatible')
+    }
     setShowConfig(true)
     setConfigError(null)
   }
@@ -257,19 +267,31 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
     return names[provider] || provider
   }
 
-  const getDefaultModel = (provider: string) => {
-    const models: Record<string, string> = {
-      openai: 'gpt-4o-mini',
-      gemini: 'gemini-1.5-flash',
+  const getProviderTypeDisplayName = (providerType: string) => {
+    const names: Record<string, string> = {
+      mock: 'Mock (Demo)',
+      openai: 'OpenAI',
+      'openai-compatible': 'OpenAI Compatible',
+      gemini: 'Google Gemini',
     }
-    return models[provider] || ''
+    return names[providerType] || providerType
   }
 
-  const getDefaultBaseUrl = (provider: string) => {
-    const urls: Record<string, string> = {
-      openai: 'https://api.openai.com/v1',
+  const getDefaultModel = (providerType: string) => {
+    const models: Record<string, string> = {
+      'openai': 'gpt-4o-mini',
+      'openai-compatible': 'gpt-4o-mini',
+      gemini: 'gemini-1.5-flash',
     }
-    return urls[provider] || ''
+    return models[providerType] || ''
+  }
+
+  const getDefaultBaseUrl = (providerType: string) => {
+    const urls: Record<string, string> = {
+      'openai': 'https://api.openai.com/v1',
+      'openai-compatible': 'https://api.openai.com/v1',
+    }
+    return urls[providerType] || ''
   }
 
   return (
@@ -394,7 +416,7 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
         <div className={styles.modalOverlay} onClick={() => setShowConfig(false)}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h4>Configure {getProviderDisplayName(configProvider)}</h4>
+              <h4>Configure {getProviderTypeDisplayName(configProviderType)} ({configProvider})</h4>
               <button className={styles.modalClose} onClick={() => setShowConfig(false)} aria-label="Close">
                 <XIcon size={20} />
               </button>
@@ -413,17 +435,30 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
                 />
               </div>
               <div className={styles.modalField}>
+                <label htmlFor="providerType">Provider Type</label>
+                <select
+                  id="providerType"
+                  value={configProviderType}
+                  onChange={e => setConfigProviderType(e.target.value as 'openai' | 'openai-compatible' | 'gemini' | 'mock')}
+                  disabled={configLoading}
+                >
+                  <option value="openai-compatible">OpenAI Compatible (OpenAI, Ollama, OpenRouter, LiteLLM, etc.)</option>
+                  <option value="gemini">Google Gemini</option>
+                  <option value="mock">Mock (Demo)</option>
+                </select>
+              </div>
+              <div className={styles.modalField}>
                 <label htmlFor="baseUrl">Base URL</label>
                 <input
                   id="baseUrl"
                   type="url"
                   value={configBaseUrl}
                   onChange={e => setConfigBaseUrl(e.target.value)}
-                  placeholder={getDefaultBaseUrl(configProvider)}
+                  placeholder={getDefaultBaseUrl(configProviderType)}
                   disabled={configLoading}
                 />
-                {configProvider === 'openai' && (
-                  <span className={styles.fieldHint}>Leave empty for default: {getDefaultBaseUrl(configProvider)}</span>
+                {configProviderType === 'openai' || configProviderType === 'openai-compatible' && (
+                  <span className={styles.fieldHint}>Leave empty for default: {getDefaultBaseUrl(configProviderType)}</span>
                 )}
               </div>
               <div className={styles.modalField}>
@@ -433,10 +468,10 @@ export function VoicePanel({ onAction }: VoicePanelProps) {
                   type="text"
                   value={configModel}
                   onChange={e => setConfigModel(e.target.value)}
-                  placeholder={getDefaultModel(configProvider)}
+                  placeholder={getDefaultModel(configProviderType)}
                   disabled={configLoading}
                 />
-                <span className={styles.fieldHint}>Leave empty for default: {getDefaultModel(configProvider)}</span>
+                <span className={styles.fieldHint}>Leave empty for default: {getDefaultModel(configProviderType)}</span>
               </div>
               {configError && (
                 <div className={styles.modalError}>
