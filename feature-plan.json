@@ -120,6 +120,24 @@
             ]
         },
         {
+            "id": "voice-provider-config",
+            "title": "Custom OpenAI-compatible provider configuration",
+            "status": "done",
+            "acceptance": [
+                "Provider configuration modal allows selecting provider type (OpenAI Compatible, Google Gemini, Mock) separately from provider name",
+                "Users can configure custom OpenAI-compatible providers (Ollama, OpenRouter, LiteLLM, etc.) with custom names",
+                "Base URL and model defaults adjust based on selected provider type"
+            ],
+            "implementation": [
+                "frontend/src/components/VoicePanel.tsx",
+                "frontend/src/components/VoicePanel.module.css",
+                "frontend/src/types/index.ts"
+            ],
+            "tests": [
+                "frontend/src/components/VoicePanel.test.tsx"
+            ]
+        },
+        {
             "id": "auth-oidc",
             "title": "OIDC authentication with Keycloak",
             "status": "planned",

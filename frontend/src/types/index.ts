@@ -87,7 +87,7 @@ export interface ApiError {
 }
 export interface ProviderConfigRequest {
   name: string
-  provider_type: 'openai' | 'gemini' | 'mock'
+  provider_type: 'openai' | 'openai-compatible' | 'gemini' | 'mock'
   api_key: string
   base_url?: string
   model?: string

@@ -68,6 +68,19 @@ Implementation: `backend/app/core/config.py`, `backend/app/models/schemas.py`, `
 
 Tests: `backend/tests/test_voice.py`, `frontend/src/components/VoicePanel.test.tsx`
 
+### voice-provider-config — Custom OpenAI-compatible provider configuration
+
+Status: done
+
+Acceptance:
+- Provider configuration modal allows selecting provider type (OpenAI Compatible, Google Gemini, Mock) separately from provider name
+- Users can configure custom OpenAI-compatible providers (Ollama, OpenRouter, LiteLLM, etc.) with custom names
+- Base URL and model defaults adjust based on selected provider type
+
+Implementation: `frontend/src/components/VoicePanel.tsx`, `frontend/src/components/VoicePanel.module.css`, `frontend/src/types/index.ts`
+
+Tests: `frontend/src/components/VoicePanel.test.tsx`
+
 ### auth-oidc — OIDC authentication with Keycloak
 
 Status: planned
