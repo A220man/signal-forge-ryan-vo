@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
-from app.api import health_router, geocode_router, camera_router, voice_router
+from app.api import health_router, geocode_router, camera_router, oidc_router, voice_router
 from app.services.geocoding import close_geocoding_client
 from app.services.cameras import close_camera_service
 from app.services.voice import close_voice_service
@@ -41,7 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(geocode_router)
     app.include_router(camera_router)
-    app.include_router(voice_router)
+    app.include_router(oidc_router)\n    app.include_router(voice_router)
 
     return app
 

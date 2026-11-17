@@ -1,0 +1,20 @@
+{
+  "realm": "signal-forge-realm",
+  "enabled": true,
+  "displayName": "Signal Forge",
+  "frontendUrl": "http://localhost:5173",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": false,
+  "duplicateEmailsAllowed\": false,
+  \"smtpServer\": {
+    \"host\": \"localhost\",
+    \"port\": 25,
+    \"from\": \"noreply@example.com\"
+  },
+  \"themes\": [
+    {
+      \"name\": \"custom-theme\",
+      \"types\": [\"login\", \"account\", \"email\"]
+    }
+  ]
+}
