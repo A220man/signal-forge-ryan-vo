@@ -42,4 +42,10 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-\n# Keycloak OIDC\nkeycloak_url: str = \"https://keycloak.example.com\"\nkeycloak_realm: str = \"signal-forge-realm\"\nkeycloak_client_id: str = \"signal-forge\"\nkeycloak_public_key: str = \"\"\nkeycloak_enable: bool = true
+
+# Keycloak OIDC
+keycloak_url: str = "https://keycloak.example.com"
+keycloak_realm: str = "signal-forge-realm"
+keycloak_client_id: str = "signal-forge"
+keycloak_public_key: str = ""
+keycloak_enable: bool = True

@@ -41,7 +41,8 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(geocode_router)
     app.include_router(camera_router)
-    app.include_router(oidc_router)\n    app.include_router(voice_router)
+    app.include_router(oidc_router)
+    app.include_router(voice_router)
 
     return app
 
