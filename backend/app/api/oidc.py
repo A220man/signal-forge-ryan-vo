@@ -1,21 +1,23 @@
 """OIDC authentication router with Keycloak JWT validation."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2AuthorizationCodeBearer
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from pydantic import BaseModel, Field
 from typing import Optional
 import json
 import base64
-import os
+import jwt
+
+from app.core.config import get_settings
 
 router = APIRouter(prefix="/api/oidc", tags=["oidc"])
 
-# ---- Keycloak configuration from settings ----
-# These would normally come from app.core.config.Settings
-KEYCLOAK_URL: str = os.getenv("KEYCLOAK_URL", "https://keycloak.example.com")
-KEYCLOAK_REALM: str = os.getenv("KEYCLOAK_REALM", "signal-forge-realm")
-KEYCLOAK_CLIENT_ID: str = os.getenv("KEYCLOAK_CLIENT_ID", "signal-forge")
-KEYCLOAK_PUBLIC_KEY: str = os.getenv("KEYCLOAK_PUBLIC_KEY", "")
+# ---- Keycloak configuration from Settings ----
+_settings = get_settings()
+
+KEYCLOAK_URL: str = _settings.keycloak_url
+KEYCLOAK_REALM: str = _settings.keycloak_realm
+KEYCLOAK_CLIENT_ID: str = _settings.keycloak_client_id
+KEYCLOAK_PUBLIC_KEY: str = _settings.keycloak_public_key
 
 
 # ---- JWT token payload models ----
@@ -32,7 +34,6 @@ def _decode_jwt_payload(token: str) -> dict:
     parts = token.split(".")
     if len(parts) != 3:
         raise ValueError("Invalid JWT format")
-    # Decode payload (base64url)
     payload_b64 = parts[1]
     # Add padding if needed
     payload_b64 += "=" * (4 - len(payload_b64) % 4) if len(payload_b64) % 4 else ""
@@ -41,88 +42,99 @@ def _decode_jwt_payload(token: str) -> dict:
 
 def _verify_jwt_signature(token: str, public_key_pem: str) -> dict:
     """Verify JWT signature using the provided public key."""
-    from jose import jwt as jose_jwt
-
-    return jose_jwt.decode(
-        token,
-        public_key_pem,
-        algorithms=["RS256"],
-        audience=KEYCLOAK_CLIENT_ID,
-        issuer=f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}",
-    )
+    try:
+        payload = jwt.decode(
+            token,
+            public_key_pem,
+            algorithms=["RS256"],
+            audience=KEYCLOAK_CLIENT_ID,
+            issuer=KEYCLOAK_URL + "/realms/" + KEYCLOAK_REALM,
+        )
+    except jwt.InvalidTokenError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid JWT: {e}",
+        )
+    return payload
 
 
 # ---- Dependency: get current user from JWT ----
 async def get_current_user(
-    authorization: Optional[str] = None,
+    authorization: str = Header(None),
 ) -> Optional[TokenPayload]:
     """
-    Dependency that extracts and validates a Bearer JWT token.
+    Extract and validate the JWT from the Authorization header.
 
-    In demo mode (no KEYCLOAK_PUBLIC_KEY configured), returns None
-    so protected endpoints work in local development.
-
-    In production mode, validates the token against the Keycloak public key.
+    Returns the decoded token payload if valid, or None if no auth header
+    or in demo mode.
     """
-    if authorization is None or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authorization header",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    from app.core.config import Settings
 
-    token = authorization.split(" ", 1)[1]
+    settings = get_settings()
+
+    # Demo mode: accept any token without verification (local dev only)
+    if settings.demo_mode:
+        if authorization and authorization.startswith("Bearer "):
+            token = authorization[len("Bearer "):]
+            try:
+                payload = jwt.decode(
+                    token,
+                    options={"verify_signature": False},
+                    audience=settings.keycloak_client_id,
+                    issuer=settings.keycloak_url + "/realms/" + settings.keycloak_realm,
+                )
+                return TokenPayload(**payload)
+            except (jwt.InvalidTokenError, ValueError, Exception):
+                return None
+        return None
+
+    # Production mode: require valid JWT
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+
+    token = authorization[len("Bearer "):]
 
     if not KEYCLOAK_PUBLIC_KEY:
-        # Demo mode: no Keycloak configured; allow access in development
-        # Return a minimal payload so the endpoint can function
-        try:
-            payload = _decode_jwt_payload(token)
-            return TokenPayload(
-                sub=payload.get("sub", "demo-user"),
-                email=payload.get("email"),
-                name=payload.get("name"),
-                iat=payload.get("iat", 0),
-                exp=payload.get("exp", 0),
-            )
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid JWT token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Keycloak public key not configured",
+        )
 
-    # Production mode: verify signature
     try:
         payload = _verify_jwt_signature(token, KEYCLOAK_PUBLIC_KEY)
         return TokenPayload(**payload)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"JWT validation failed: {str(e)}",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail=f"Authentication failed: {e}",
         )
 
 
 # ---- Protected endpoint ----
 @router.get("/protected", summary="Protected endpoint requiring OIDC authentication")
 async def protected_endpoint(
-    current_user: TokenPayload = Depends(get_current_user),
+    current_user: Optional[TokenPayload] = Depends(get_current_user),
 ):
     """
-    Protected endpoint that requires valid OIDC/JWT authentication.
+    Protected endpoint that requires valid OIDC authentication.
 
-    - In demo mode (no Keycloak public key): returns demo user info
-    - In production mode: validates the JWT and returns user claims
+    Returns the authenticated user's token payload claims.
+    If not authenticated, returns a 401 Unauthorized response.
     """
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
     return {
-        "message": "Access granted",
+        "message": "Authentication successful",
         "user": {
             "sub": current_user.sub,
             "email": current_user.email,
             "name": current_user.name,
         },
-        "auth_mode": "production" if KEYCLOAK_PUBLIC_KEY else "demo",
     }
 
 
@@ -131,10 +143,10 @@ async def protected_endpoint(
 async def openid_configuration():
     """Keycloak OpenID configuration discovery endpoint."""
     return {
-        "issuer": f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}",
-        "authorization_endpoint": f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/authorize",
-        "token_endpoint": f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/token",
-        "userinfo_endpoint": f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/userinfo",
-        "jwks_uri": f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs",
-        "registration_endpoint": f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/register",
+        "issuer": KEYCLOAK_URL + "/realms/" + KEYCLOAK_REALM,
+        "authorization_endpoint": KEYCLOAK_URL + "/realms/" + KEYCLOAK_REALM + "/protocol/openid-connect/auth",
+        "token_endpoint": KEYCLOAK_URL + "/realms/" + KEYCLOAK_REALM + "/protocol/openid-connect/token",
+        "userinfo_endpoint": KEYCLOAK_URL + "/realms/" + KEYCLOAK_REALM + "/protocol/openid-connect/userinfo",
+        "jwks_uri": KEYCLOAK_URL + "/realms/" + KEYCLOAK_REALM + "/protocol/openid-connect/certs",
+        "registration_endpoint": KEYCLOAK_URL + "/realms/" + KEYCLOAK_REALM + "/protocol/openid-connect/auth",
     }

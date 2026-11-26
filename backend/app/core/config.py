@@ -38,14 +38,16 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.openai.com/v1"
     llm_timeout: float = 30.0
 
+    # Keycloak OIDC
+    keycloak_url: str = "https://keycloak.example.com"
+    keycloak_realm: str = "signal-forge-realm"
+    keycloak_client_id: str = "signal-forge"
+    keycloak_public_key: str = ""
+    keycloak_enable: bool = True
+
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
 
-# Keycloak OIDC
-keycloak_url: str = "https://keycloak.example.com"
-keycloak_realm: str = "signal-forge-realm"
-keycloak_client_id: str = "signal-forge"
-keycloak_public_key: str = ""
-keycloak_enable: bool = True
+# Module-level constants removed; all Keycloak config is now in Settings.
